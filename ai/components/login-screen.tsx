@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BadgeCheck,
   ChevronRight,
+  Copy,
   Download,
   Eye,
   FileImage,
@@ -40,15 +41,99 @@ const productPillars = [
   { icon: History, title: "素材资产化", desc: "生成记录可回溯、可再生成、可导出，适合团队持续运营。" },
 ]
 
-const caseTabs = ["全部", "电商", "海报", "社媒", "品牌"]
+const caseTabs = ["全部", "运营", "APP", "海报", "插画", "IP", "信息图", "电商", "品牌"]
 
 const caseCards = [
-  { type: "电商", title: "护肤新品主图", meta: "4:5 / 商品居中 / 卖点留白", prompt: "清爽防晒新品，透明瓶身，奶油白背景，水滴与户外光影", tone: "from-orange-100 via-white to-lime-100" },
-  { type: "电商", title: "食品详情页首屏", meta: "4:5 / 食欲感 / 价格标签", prompt: "手作曲奇礼盒，暖光棚拍，礼盒打开，适合直播间主图", tone: "from-amber-100 via-white to-orange-100" },
-  { type: "海报", title: "私域裂变活动", meta: "9:16 / 福利区 / 扫码区", prompt: "618 限时促销，强标题，红橙渐变，预留二维码和行动按钮", tone: "from-rose-100 via-white to-orange-100" },
-  { type: "社媒", title: "小红书种草封面", meta: "1:1 / 大标题 / 生活方式", prompt: "通勤包种草封面，咖啡店桌面，醒目标题区，年轻轻奢风", tone: "from-pink-100 via-white to-sky-100" },
-  { type: "品牌", title: "官网 Hero Banner", meta: "16:9 / 左文案右视觉", prompt: "SaaS 产品官网首屏，深色设备界面，右侧产品视觉，高级科技感", tone: "from-slate-100 via-white to-cyan-100" },
-  { type: "品牌", title: "同款风格复刻", meta: "参考图 / 反推 prompt / 再生成", prompt: "上传参考图后提取配色、构图、材质和镜头语言，生成同风格素材", tone: "from-violet-100 via-white to-lime-100" },
+  {
+    type: "信息图",
+    title: "龙井茶信息图海报",
+    meta: "4:5 / 产品摄影 / 功能卡片 / 冲泡指南",
+    source: "YouMind 灵感",
+    format: "教育视觉图",
+    prompt: "精致中国茶信息图海报，顶部产品摄影，中段展示产地、香气、等级和功效卡片，底部用 3 步冲泡指南说明水温、茶量和时间，米白宣纸质感，龙井绿与墨色排版，高级留白。",
+    tone: "from-lime-100 via-stone-50 to-emerald-100",
+  },
+  {
+    type: "运营",
+    title: "会员日福利长图",
+    meta: "9:16 / 福利分层 / 行动按钮 / 私域转化",
+    source: "Image2Hub 分类",
+    format: "运营物料",
+    prompt: "品牌会员日运营长图，首屏大标题，三档福利权益卡片，倒计时模块和行动按钮，暖橙促销氛围，清晰分区，适合社群和朋友圈转发。",
+    tone: "from-orange-100 via-white to-amber-100",
+  },
+  {
+    type: "APP",
+    title: "AI 修图 App 首屏",
+    meta: "16:9 / 产品界面 / 功能卖点 / 科技感",
+    source: "Image2Hub 分类",
+    format: "APP 宣传图",
+    prompt: "AI 图片编辑 App 官网首屏，左侧大标题和三条功能卖点，右侧手机界面展示一键抠图、扩图和海报生成，清透蓝白科技感，柔和玻璃拟态。",
+    tone: "from-sky-100 via-white to-cyan-100",
+  },
+  {
+    type: "海报",
+    title: "新品发布倒计时海报",
+    meta: "4:5 / 强标题 / 产品悬浮 / 发布氛围",
+    source: "商业海报模板",
+    format: "活动海报",
+    prompt: "新品发布倒计时海报，中心产品悬浮，背景有速度光轨和细腻颗粒，顶部大标题，底部保留日期和预约按钮区域，高级黑金配色。",
+    tone: "from-slate-200 via-stone-50 to-orange-100",
+  },
+  {
+    type: "插画",
+    title: "城市通勤生活方式插画",
+    meta: "1:1 / 扁平插画 / 社媒封面 / 年轻感",
+    source: "Image2Hub 分类",
+    format: "插画封面",
+    prompt: "年轻白领城市通勤生活方式插画，清晨地铁、咖啡和笔记本元素，柔和几何构图，低饱和蓝绿配色，适合公众号和小红书封面。",
+    tone: "from-teal-100 via-white to-sky-100",
+  },
+  {
+    type: "IP",
+    title: "品牌吉祥物三视图",
+    meta: "1:1 / IP 设定 / 可爱形象 / 延展素材",
+    source: "Image2Hub 分类",
+    format: "IP 形象",
+    prompt: "面向 AI 图片工具的品牌吉祥物三视图，可爱的像素相机小助手，正面、侧面和表情变化，配品牌色贴纸元素，干净白底，适合后续做运营贴图。",
+    tone: "from-yellow-100 via-white to-lime-100",
+  },
+  {
+    type: "电商",
+    title: "护肤新品主图",
+    meta: "4:5 / 商品居中 / 卖点留白 / 质感棚拍",
+    source: "电商转化场景",
+    format: "商品主图",
+    prompt: "清爽防晒新品电商主图，透明瓶身，奶油白背景，水滴和户外自然光，产品居中，右侧预留功效标签和价格信息区域，高级干净。",
+    tone: "from-orange-100 via-white to-lime-100",
+  },
+  {
+    type: "电商",
+    title: "食品详情页首屏",
+    meta: "4:5 / 食欲感 / 价格标签 / 直播间可用",
+    source: "电商详情页场景",
+    format: "详情页首屏",
+    prompt: "手作曲奇礼盒详情页首屏，暖光棚拍，礼盒打开露出多种口味，桌面有麦穗和牛奶，预留直播间价格标签与购买按钮。",
+    tone: "from-amber-100 via-white to-orange-100",
+  },
+  {
+    type: "品牌",
+    title: "SaaS 官网 Hero Banner",
+    meta: "16:9 / 左文案右视觉 / 产品界面",
+    source: "品牌官网场景",
+    format: "官网 Banner",
+    prompt: "SaaS 产品官网首屏 Banner，深色设备界面，右侧产品视觉和数据卡片，左侧保留标题与 CTA，蓝白科技质感，商业级光影。",
+    tone: "from-slate-100 via-white to-cyan-100",
+  },
+  {
+    type: "品牌",
+    title: "同款风格复刻",
+    meta: "参考图 / 反推 prompt / 再生成 / 品牌统一",
+    source: "产品独立功能",
+    format: "同款参考",
+    prompt: "上传参考图后提取配色、构图、材质、光线和镜头语言，生成同风格商业素材，保持品牌一致性并自动规避水印和侵权元素。",
+    tone: "from-violet-100 via-white to-lime-100",
+  },
 ]
 
 const creatorScenes = [
@@ -390,63 +475,124 @@ function CasesTab({
   visibleCases: typeof caseCards
   onAuth: () => void
 }) {
+  const featured = visibleCases[0] ?? caseCards[0]
+  const copyPrompt = async (prompt: string) => {
+    try {
+      await navigator.clipboard.writeText(prompt)
+      toast.success("提示词已复制")
+    } catch {
+      toast.error("复制失败，请手动复制")
+    }
+  }
+
   return (
     <section className="py-10 lg:py-14">
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-slate-500">参考 Canva、Recraft、Photoroom、Kittl 的案例库结构整理</p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight sm:text-6xl">案例库</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-            先让用户看到能生成什么，再引导注册生成同款。这里使用自有占位视觉，不复制第三方素材。
-          </p>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="overflow-hidden rounded-[2.2rem] border border-slate-200 bg-slate-950 text-white shadow-[0_34px_120px_rgba(15,23,42,0.18)]">
+          <div className="relative min-h-[25rem] p-5 sm:p-8">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(217,249,157,0.28),transparent_30%),radial-gradient(circle_at_84%_8%,rgba(251,146,60,0.2),transparent_26%)]" />
+            <div className="relative max-w-3xl">
+              <p className="text-sm font-medium text-lime-200">AI Prompt Gallery</p>
+              <h1 className="mt-4 text-4xl font-semibold leading-[1.02] tracking-tight sm:text-6xl">
+                可以复制提示词，也可以一键生成同款
+              </h1>
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-white/58">
+                参考 YouMind 的单案例详情结构和 Image2Hub 的多分类灵感库结构，沉淀成你自己的商业案例库。用户先看到能力边界，再注册生成真实图片。
+              </p>
+            </div>
+
+            <div className="relative mt-8 grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "案例数量", value: `${caseCards.length}` },
+                { label: "分类覆盖", value: `${caseTabs.length - 1}` },
+                { label: "可复制 Prompt", value: "100%" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-3xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur">
+                  <p className="text-xs text-white/42">{item.label}</p>
+                  <p className="mt-2 text-2xl font-semibold">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <Button className="rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800" onClick={onAuth}>生成我的案例</Button>
+
+        <aside className="rounded-[2.2rem] border border-slate-200 bg-white/82 p-5 shadow-sm backdrop-blur">
+          <p className="text-sm font-semibold">本周精选</p>
+          <div className={cn("mt-4 aspect-[4/5] rounded-[1.75rem] bg-gradient-to-br p-5", featured.tone)}>
+            <div className="flex h-full flex-col justify-between">
+              <span className="w-fit rounded-full bg-white/82 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">{featured.type}</span>
+              <div className="rounded-3xl bg-white/82 p-4 shadow-sm backdrop-blur">
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{featured.format}</p>
+                <h2 className="mt-2 text-2xl font-semibold leading-tight">{featured.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{featured.meta}</p>
+              </div>
+            </div>
+          </div>
+          <Button className="mt-4 h-12 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800" onClick={onAuth}>
+            用精选案例生成同款
+            <ArrowRight className="size-4" />
+          </Button>
+        </aside>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2">
-        {caseTabs.map((item) => (
-          <button
-            key={item}
-            type="button"
-            onClick={() => setCaseFilter(item)}
-            className={cn(
-              "rounded-full border px-4 py-2 text-sm shadow-sm transition hover:-translate-y-0.5",
-              caseFilter === item ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white/72 text-slate-600 hover:bg-white",
-            )}
-          >
-            {item}
-          </button>
-        ))}
+      <div className="sticky top-24 z-20 mt-5 rounded-[1.5rem] border border-white/70 bg-white/74 p-2 shadow-sm backdrop-blur-xl">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {caseTabs.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setCaseFilter(item)}
+              className={cn(
+                "shrink-0 rounded-full border px-4 py-2 text-sm shadow-sm transition hover:-translate-y-0.5",
+                caseFilter === item ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white/72 text-slate-600 hover:bg-white",
+              )}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {visibleCases.map((item) => (
-          <article key={item.title} className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white/82 p-4 shadow-sm transition hover:-translate-y-1 hover:bg-white hover:shadow-xl">
-            <div className={cn("aspect-[4/3] rounded-[1.5rem] bg-gradient-to-br", item.tone)}>
-              <div className="flex h-full flex-col justify-between p-4">
-                <span className="w-fit rounded-full bg-white/82 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">{item.type}</span>
-                <div className="rounded-2xl bg-white/78 p-3 shadow-sm backdrop-blur">
+          <article key={item.title} className="group overflow-hidden rounded-[2rem] border border-slate-200 bg-white/86 p-4 shadow-sm transition hover:-translate-y-1 hover:bg-white hover:shadow-xl">
+            <div className={cn("relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-gradient-to-br", item.tone)}>
+              <div className="absolute -right-10 -top-10 size-32 rounded-full bg-white/48 blur-sm" />
+              <div className="relative flex h-full flex-col justify-between p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="w-fit rounded-full bg-white/82 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">{item.type}</span>
+                  <span className="rounded-full bg-slate-950/80 px-3 py-1 text-xs text-white">{item.format}</span>
+                </div>
+                <div className="rounded-2xl bg-white/80 p-3 shadow-sm backdrop-blur">
                   <FileImage className="size-5 text-slate-500" />
                   <p className="mt-2 text-sm font-semibold">{item.title}</p>
                 </div>
               </div>
             </div>
             <div className="mt-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-semibold">{item.title}</h2>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-slate-400">{item.source}</p>
+                  <h2 className="mt-1 font-semibold">{item.title}</h2>
                   <p className="mt-1 text-sm text-slate-500">{item.meta}</p>
                 </div>
-                <ChevronRight className="size-5 text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-950" />
+                <ChevronRight className="mt-5 size-5 shrink-0 text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-950" />
               </div>
-              <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">{item.prompt}</p>
+              <div className="mt-4 rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Prompt</p>
+                <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-600">{item.prompt}</p>
+              </div>
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button variant="outline" className="rounded-2xl bg-white" onClick={onAuth}>
-                  <Download className="size-4" />
-                  导出高清
+                <Button variant="outline" className="rounded-2xl bg-white" onClick={() => copyPrompt(item.prompt)}>
+                  <Copy className="size-4" />
+                  复制提示词
                 </Button>
                 <Button className="rounded-2xl bg-slate-950 text-white hover:bg-slate-800" onClick={onAuth}>生成同款</Button>
               </div>
+              <Button variant="ghost" className="mt-2 w-full rounded-2xl text-slate-500 hover:text-slate-950" onClick={onAuth}>
+                <Download className="size-4" />
+                登录后导出高清案例图
+              </Button>
             </div>
           </article>
         ))}
