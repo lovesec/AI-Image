@@ -1,19 +1,16 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   AlertCircle,
   ArrowUpRight,
   BadgeCheck,
   BookOpen,
-  Brush,
   Check,
-  ChevronDown,
   CircleDollarSign,
   Copy,
   FileText,
   ImageIcon,
-  ImagePlus,
   Layers3,
   Loader2,
   Maximize2,
@@ -23,33 +20,30 @@ import {
   Presentation,
   RefreshCw,
   Rocket,
-  Settings2,
   ShieldCheck,
   Sparkles,
   Ticket,
   Wand2,
 } from "lucide-react"
+import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
 import { useStore } from "@/lib/store"
 import { useGeneration, type GenerateParams } from "@/lib/generation"
 import {
+  CUSTOM_PROMPT_MAX,
   IMAGE_TYPES,
   INDUSTRIES,
   RATIOS,
   buildFinalPrompt,
   detectType,
-  CUSTOM_PROMPT_MAX,
+  type AspectRatio,
   type ImageType,
   type Industry,
-  type AspectRatio,
 } from "@/lib/templates"
 import { ResultCards } from "@/components/result-cards"
 
@@ -61,11 +55,11 @@ const TYPE_ICONS: Record<ImageType, typeof FileText> = {
   cover: BookOpen,
 }
 
-const SIZE_LABELS: Record<AspectRatio, string> = {
-  "1:1": "方形素材",
-  "4:5": "电商竖版",
-  "16:9": "横幅广告",
-  "9:16": "短视频竖屏",
+const RATIO_META: Record<AspectRatio, { label: string; use: string; frame: string }> = {
+  "1:1": { label: "1:1", use: "社媒方图", frame: "aspect-square" },
+  "4:5": { label: "4:5", use: "电商/信息流", frame: "aspect-[4/5]" },
+  "16:9": { label: "16:9", use: "Banner", frame: "aspect-video" },
+  "9:16": { label: "9:16", use: "短视频竖屏", frame: "aspect-[9/16]" },
 }
 
 const TEMPLATE_PACKS: {
@@ -76,6 +70,7 @@ const TEMPLATE_PACKS: {
   type: ImageType
   industry: Industry
   size: AspectRatio
+  accent: string
 }[] = [
   {
     name: "爆款商品首图",
@@ -85,15 +80,17 @@ const TEMPLATE_PACKS: {
     type: "product_shot",
     industry: "ecommerce",
     size: "4:5",
+    accent: "from-orange-200 via-white to-lime-100",
   },
   {
-    name: "活动促销海报",
-    scene: "私域传播",
+    name: "私域活动海报",
+    scene: "促销裂变",
     title: "618 限时促销活动海报",
     detail: "强视觉主标题，促销氛围明确，包含利益点、倒计时区域和行动按钮留白。",
     type: "poster",
     industry: "ecommerce",
     size: "4:5",
+    accent: "from-rose-100 via-white to-orange-100",
   },
   {
     name: "课程招生封面",
@@ -103,28 +100,30 @@ const TEMPLATE_PACKS: {
     type: "cover",
     industry: "education",
     size: "1:1",
+    accent: "from-sky-100 via-white to-slate-100",
   },
   {
-    name: "品牌 Banner",
-    scene: "站内投放",
+    name: "官网 Hero Banner",
+    scene: "品牌官网",
     title: "春季品牌活动 Banner",
     detail: "横向构图，左侧文字区，右侧产品或人物主视觉，高级商业质感。",
     type: "banner",
     industry: "it",
     size: "16:9",
+    accent: "from-slate-200 via-white to-cyan-100",
   },
 ]
 
 const STYLE_PRESETS = [
-  { name: "智能适配", color: "linear-gradient(135deg,#f8fafc,#e2e8f0)", prompt: "" },
-  { name: "经典黑白", color: "linear-gradient(135deg,#111827,#f8fafc)", prompt: "经典黑白，高对比，干净高级。" },
-  { name: "海洋蓝", color: "linear-gradient(135deg,#0ea5e9,#1e3a8a)", prompt: "海洋蓝色系，清爽、专业、科技感。" },
-  { name: "夕阳橙", color: "linear-gradient(135deg,#fb923c,#ef4444)", prompt: "夕阳橙色系，温暖、有活力、强转化。" },
-  { name: "森林绿", color: "linear-gradient(135deg,#22c55e,#14532d)", prompt: "森林绿色系，自然、健康、可信赖。" },
-  { name: "玫瑰粉", color: "linear-gradient(135deg,#fb7185,#be185d)", prompt: "玫瑰粉色系，柔和、精致、适合女性消费品。" },
+  { name: "智能适配", caption: "由模板判断", color: "linear-gradient(135deg,#f8fafc,#e2e8f0)", prompt: "" },
+  { name: "高级黑金", caption: "奢华/礼盒", color: "linear-gradient(135deg,#0f172a,#f59e0b)", prompt: "高级黑金色系，强质感，低调奢华，适合高客单价商业海报。" },
+  { name: "清透蓝白", caption: "科技/服务", color: "linear-gradient(135deg,#e0f2fe,#0284c7)", prompt: "清透蓝白色系，干净科技感，信任感强，留白明确。" },
+  { name: "暖橙转化", caption: "促销/电商", color: "linear-gradient(135deg,#fed7aa,#ef4444)", prompt: "暖橙促销色系，视觉热度高，行动感强，适合转化场景。" },
+  { name: "自然绿调", caption: "食品/健康", color: "linear-gradient(135deg,#dcfce7,#16a34a)", prompt: "自然绿色系，健康、新鲜、可信赖，生活方式摄影感。" },
 ]
 
-const BRAND_TAGS = ["品牌主色", "Logo 安全区", "卖点词库", "同款风格", "投放尺寸"]
+const WORKFLOW_STEPS = ["选场景", "写需求", "控品牌", "出资产"]
+const BRAND_TAGS = ["品牌主色", "Logo 安全区", "卖点词库", "合规避坑", "批量尺寸"]
 
 export function GeneratePanel() {
   const { user, inviteQuota, appliedCode, applyInviteCode, reversePromptDraft } = useStore()
@@ -138,8 +137,6 @@ export function GeneratePanel() {
   const [count, setCount] = useState(1)
   const [customPrompt, setCustomPrompt] = useState("")
   const [codeInput, setCodeInput] = useState("")
-  const [sizeMenuOpen, setSizeMenuOpen] = useState(false)
-  const [styleMenuOpen, setStyleMenuOpen] = useState(false)
   const [stylePreset, setStylePreset] = useState(STYLE_PRESETS[0])
 
   useEffect(() => {
@@ -166,12 +163,8 @@ export function GeneratePanel() {
   const selectedIndustry = INDUSTRIES.find((item) => item.value === industry)
   const detected = useMemo(() => detectType(`${title} ${detail}`), [title, detail])
   const totalQuota = (user?.quota ?? 0) + inviteQuota
-  const readiness = [
-    { label: "场景模板", ok: Boolean(type) },
-    { label: "商业需求", ok: Boolean(title.trim() || detail.trim()) },
-    { label: "品牌风格", ok: stylePreset.name !== "智能适配" || Boolean(customPrompt.trim()) },
-    { label: "输出规格", ok: Boolean(size) },
-  ]
+  const readyScore = [type, industry, size, title.trim() || detail.trim(), stylePreset.name !== "智能适配" || customPrompt.trim()].filter(Boolean).length
+  const selectedRatio = RATIO_META[size]
 
   const handleApplyCode = () => {
     const res = applyInviteCode(codeInput)
@@ -220,476 +213,316 @@ export function GeneratePanel() {
   }
 
   return (
-    <div className="space-y-5">
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-3xl border border-slate-200 bg-[#10130f] p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] sm:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <Badge className="rounded-full bg-lime-300 text-slate-950 hover:bg-lime-300">
-                Campaign Studio V2
-              </Badge>
-              <h1 className="mt-5 max-w-2xl text-3xl font-semibold leading-tight sm:text-5xl">
-                生成可投放的商业视觉，而不是一张随机图片
-              </h1>
-              <p className="mt-4 max-w-xl text-sm leading-6 text-white/62">
-                从模板、品牌风格、比例到生成结果归档，把营销素材生产变成稳定工作流。
-              </p>
-            </div>
-            <Button className="rounded-full bg-white text-slate-950 hover:bg-lime-100" onClick={handleGenerate} disabled={loading || totalQuota < count}>
-              {loading ? <Loader2 className="size-4 animate-spin" /> : <Rocket className="size-4" />}
-              生成素材
-            </Button>
-          </div>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[
-              { icon: Sparkles, label: "当前模式", value: selectedType?.label || "宣传海报" },
-              { icon: ShieldCheck, label: "品牌控制", value: stylePreset.name },
-              { icon: CircleDollarSign, label: "可用额度", value: `${totalQuota} 次` },
-            ].map((item) => (
-              <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-                <item.icon className="size-5 text-lime-200" />
-                <p className="mt-3 text-xs text-white/45">{item.label}</p>
-                <p className="mt-1 text-sm font-medium">{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold">品牌资产</p>
-              <p className="mt-1 text-xs text-slate-500">商业一致性控制</p>
-            </div>
-            <Badge variant="outline" className="rounded-full">Demo</Badge>
-          </div>
-          <div className="mt-5 flex gap-2">
-            {["#111827", "#d9f99d", "#f97316", "#0ea5e9"].map((color) => (
-              <span key={color} className="size-9 rounded-full border border-slate-200" style={{ backgroundColor: color }} />
-            ))}
-          </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {BRAND_TAGS.map((tag) => (
-              <span key={tag} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs text-slate-600">
-                {tag}
-              </span>
-            ))}
-          </div>
-          <div className="mt-5 rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-medium text-slate-500">建议</p>
-            <p className="mt-2 text-sm leading-6">
-              先选择模板，再补充卖点和目标人群，输出会更接近可投放素材。
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">模板起点</p>
-            <p className="text-xs text-slate-500">按商业场景快速进入生成</p>
-          </div>
-          <Button variant="ghost" size="sm" className="rounded-full">
-            查看全部
-            <ArrowUpRight className="size-4" />
-          </Button>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {TEMPLATE_PACKS.map((item) => (
-            <button
-              type="button"
-              key={item.name}
-              onClick={() => handleTemplate(item)}
-              className={cn(
-                "group rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
-                title === item.title ? "border-slate-950" : "border-slate-200",
-              )}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-600">
-                  {item.scene}
-                </Badge>
-                <ArrowUpRight className="size-4 text-slate-300 transition group-hover:text-slate-950" />
-              </div>
-              <h3 className="mt-4 font-semibold">{item.name}</h3>
-              <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{item.detail}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-lg font-semibold">创作台</p>
-                <p className="mt-1 text-sm text-slate-500">输入商业目标、卖点和画面要求</p>
-              </div>
-              {detected && detected !== type ? (
-                <Button variant="outline" size="sm" className="rounded-full" onClick={() => setType(detected)}>
-                  切换为 {IMAGE_TYPES.find((item) => item.value === detected)?.label}
-                </Button>
-              ) : null}
+    <div className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[#f7f4ec] shadow-[0_24px_90px_rgba(15,23,42,0.08)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(217,249,157,0.75),transparent_30%),radial-gradient(circle_at_82%_8%,rgba(251,146,60,0.2),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.88),rgba(248,250,252,0.28))]" />
+      <div className="relative grid min-h-[calc(100vh-8rem)] lg:grid-cols-[260px_minmax(0,1fr)_330px]">
+        <aside className="border-b border-slate-200/80 bg-white/45 p-4 backdrop-blur-xl lg:border-b-0 lg:border-r">
+          <div className="rounded-3xl bg-slate-950 p-5 text-white shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
+            <Badge className="rounded-full bg-lime-300 text-slate-950 hover:bg-lime-300">AI Commercial Studio</Badge>
+            <h1 className="mt-5 text-2xl font-semibold leading-tight">商业图片生成工作台</h1>
+            <p className="mt-3 text-sm leading-6 text-white/58">围绕模板、品牌和投放尺寸组织生成，而不是把用户丢给空白 prompt。</p>
+            <div className="mt-6 grid grid-cols-2 gap-2">
+              <Metric icon={CircleDollarSign} label="额度" value={`${totalQuota}`} />
+              <Metric icon={Layers3} label="完成度" value={`${readyScore}/5`} />
             </div>
           </div>
 
-          <div className="p-5 sm:p-6">
-            <div className="grid gap-3 sm:grid-cols-5">
-              {IMAGE_TYPES.map((item) => {
-                const Icon = TYPE_ICONS[item.value]
-                return (
-                  <button
-                    type="button"
-                    key={item.value}
-                    onClick={() => setType(item.value)}
-                    className={cn(
-                      "rounded-2xl border px-3 py-3 text-center transition",
-                      type === item.value
-                        ? "border-slate-950 bg-slate-950 text-white"
-                        : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-950",
-                    )}
-                  >
-                    <Icon className="mx-auto size-5" />
-                    <span className="mt-2 block text-xs font-medium">{item.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="mt-5 rounded-3xl border border-slate-200 bg-[#fbfbf7]">
-              <div className="p-4 sm:p-5">
-                <Input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder={`让智图帮你设计 ${selectedType?.label || "营销图"}`}
-                  className="h-11 border-0 bg-transparent px-0 text-lg font-semibold shadow-none placeholder:text-slate-300 focus-visible:ring-0"
-                />
-                <Textarea
-                  value={detail}
-                  onChange={(event) => setDetail(event.target.value)}
-                  placeholder="描述产品、卖点、目标人群、投放渠道、画面元素、文字留白和参考风格..."
-                  rows={5}
-                  className="min-h-32 resize-none border-0 bg-transparent px-0 text-base leading-7 shadow-none placeholder:text-slate-300 focus-visible:ring-0"
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 border-t border-slate-200/80 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm text-slate-600 hover:bg-white"
-                    title="参考图"
-                  >
-                    <ImagePlus className="size-4" />
-                    参考图
-                  </button>
-
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className={cn(
-                        "inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm text-slate-600 hover:bg-white",
-                        sizeMenuOpen && "bg-white text-slate-950",
-                      )}
-                      title="尺寸选择"
-                      onClick={() => {
-                        setSizeMenuOpen((value) => !value)
-                        setStyleMenuOpen(false)
-                      }}
-                    >
-                      <Maximize2 className="size-4" />
-                      {size}
-                      <ChevronDown className={cn("size-4 text-slate-300 transition", sizeMenuOpen && "rotate-180")} />
-                    </button>
-                    {sizeMenuOpen ? (
-                      <div className="absolute left-0 top-11 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
-                        {RATIOS.map((item) => (
-                          <button
-                            type="button"
-                            key={item.value}
-                            onClick={() => {
-                              setSize(item.value)
-                              setSizeMenuOpen(false)
-                            }}
-                            className={cn(
-                              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition",
-                              size === item.value ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100",
-                            )}
-                          >
-                            <span className="font-medium">{item.value}</span>
-                            <span className={cn("text-xs", size === item.value ? "text-white/70" : "text-slate-400")}>
-                              {SIZE_LABELS[item.value]}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="relative">
-                    <button
-                      type="button"
-                      className={cn(
-                        "inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm text-slate-600 hover:bg-white",
-                        styleMenuOpen && "bg-white text-slate-950",
-                      )}
-                      title="品牌风格"
-                      onClick={() => {
-                        setStyleMenuOpen((value) => !value)
-                        setSizeMenuOpen(false)
-                      }}
-                    >
-                      <Palette className="size-4" />
-                      {stylePreset.name}
-                    </button>
-                    {styleMenuOpen ? (
-                      <div className="absolute left-0 top-11 z-30 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_50px_rgba(15,23,42,0.16)]">
-                        <div className="grid grid-cols-2 gap-1.5">
-                          {STYLE_PRESETS.map((item) => (
-                            <button
-                              type="button"
-                              key={item.name}
-                              onClick={() => {
-                                setStylePreset(item)
-                                setStyleMenuOpen(false)
-                              }}
-                              className={cn(
-                                "flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm transition",
-                                stylePreset.name === item.name ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100",
-                              )}
-                            >
-                              <span className="size-4 rounded-full border border-white/60" style={{ background: item.color }} />
-                              <span className="truncate">{item.name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm text-slate-500">
-                    <Sparkles className="size-4 text-blue-500" />
-                    gpt-image-2
-                  </span>
-                  <span className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm text-slate-500">
-                    <Layers3 className="size-4" />
-                    {count}
-                  </span>
-                  <Button
-                    type="button"
-                    disabled={loading || totalQuota < count}
-                    onClick={handleGenerate}
-                    className="h-11 rounded-full bg-[linear-gradient(135deg,#d9f99d_0%,#f97316_48%,#111827_100%)] px-7 text-white shadow-[0_12px_30px_rgba(249,115,22,0.24)] hover:opacity-95"
-                  >
-                    {loading ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
-                    生成
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div>
-                <Label className="text-sm font-medium">行业场景</Label>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {INDUSTRIES.map((item) => (
-                    <button
-                      type="button"
-                      key={item.value}
-                      onClick={() => setIndustry(item.value)}
-                      className={cn(
-                        "rounded-full border px-3 py-1.5 text-sm transition",
-                        industry === item.value
-                          ? "border-slate-950 bg-slate-950 text-white"
-                          : "border-slate-200 bg-white text-slate-500 hover:text-slate-950",
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">生成数量</Label>
-                <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="mb-3 flex items-center justify-between text-sm text-slate-500">
-                    <span>{count} 张</span>
-                    <span>额度 {totalQuota}</span>
-                  </div>
-                  <Slider
-                    min={1}
-                    max={4}
-                    step={1}
-                    value={[count]}
-                    onValueChange={(value) => setCount(Array.isArray(value) ? value[0] : value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="flex items-center gap-2 text-sm font-medium">
-                  <Settings2 className="size-4" />
-                  高级提示词
-                </Label>
-                <span className="text-xs text-slate-400">{customPrompt.length}/{CUSTOM_PROMPT_MAX}</span>
-              </div>
-              <Textarea
-                rows={3}
-                maxLength={CUSTOM_PROMPT_MAX}
-                placeholder="补充镜头、灯光、材质、风格，或粘贴反推提示词"
-                value={customPrompt}
-                onChange={(event) => setCustomPrompt(event.target.value)}
-                className="mt-3 resize-none bg-white"
-              />
-              {!!reversePromptDraft ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 rounded-full"
-                  onClick={() => setCustomPrompt(reversePromptDraft.slice(0, CUSTOM_PROMPT_MAX))}
-                >
-                  <Brush className="size-4" />
-                  使用反推草稿
-                </Button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <aside className="space-y-4">
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold">输出检查</p>
-                <p className="mt-1 text-xs text-slate-500">生成前的商业完整度</p>
-              </div>
-              <Badge variant="outline" className="rounded-full">{readiness.filter((item) => item.ok).length}/4</Badge>
-            </div>
-            <div className="mt-5 space-y-3">
-              {readiness.map((item) => (
-                <div key={item.label} className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2.5">
-                  <span className="text-sm text-slate-600">{item.label}</span>
-                  {item.ok ? <BadgeCheck className="size-4 text-emerald-500" /> : <AlertCircle className="size-4 text-slate-300" />}
+          <div className="mt-4 rounded-3xl border border-slate-200 bg-white/72 p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Workflow</p>
+            <div className="mt-4 space-y-3">
+              {WORKFLOW_STEPS.map((step, index) => (
+                <div key={step} className="flex items-center gap-3">
+                  <span className={cn("grid size-8 place-items-center rounded-full text-xs font-semibold", index < readyScore - 1 ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-400")}>{index + 1}</span>
+                  <span className="text-sm text-slate-700">{step}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <Label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                <Ticket className="size-4" />
-                邀请码
-              </Label>
-              {appliedCode ? (
-                <Badge variant="secondary" className="gap-1 rounded-full">
-                  <Check className="size-3" />
-                  {appliedCode}
-                </Badge>
-              ) : null}
-            </div>
-            {appliedCode ? (
-              <p className="mt-3 text-sm text-slate-500">赠送额度剩余 {inviteQuota} 次</p>
-            ) : (
-              <div className="mt-3 flex gap-2">
-                <Input
-                  placeholder="WELCOME20"
-                  value={codeInput}
-                  onChange={(event) => setCodeInput(event.target.value)}
-                />
-                <Button variant="outline" onClick={handleApplyCode}>
-                  激活
-                </Button>
+          <div className="mt-4 rounded-3xl border border-slate-200 bg-white/72 p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold">邀请码</p>
+                <p className="mt-1 text-xs text-slate-500">用于试用额度和增长裂变</p>
               </div>
-            )}
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-[#fff7ed] p-5">
-            <div className="flex items-center gap-2">
-              <Copy className="size-4 text-orange-600" />
-              <p className="text-sm font-semibold">最终提示词</p>
+              {appliedCode ? <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">已绑定</Badge> : null}
             </div>
-            <p className="mt-3 max-h-44 overflow-auto text-xs leading-6 text-slate-600">
-              {finalPrompt}
-            </p>
+            <div className="mt-4 flex gap-2">
+              <Input value={codeInput} onChange={(event) => setCodeInput(event.target.value)} placeholder="输入邀请码" className="rounded-full bg-white" />
+              <Button variant="outline" className="rounded-full" onClick={handleApplyCode}>兑换</Button>
+            </div>
           </div>
         </aside>
-      </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="font-semibold">输出工作区</p>
-            <p className="mt-1 text-xs text-slate-500">生成结果会在这里下载、重绘、归档</p>
+        <main className="min-w-0 p-4 sm:p-5 xl:p-6">
+          <section className="rounded-[1.75rem] border border-white/80 bg-white/80 p-4 shadow-sm backdrop-blur-xl sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="rounded-full bg-white">{selectedIndustry?.label}</Badge>
+                  <Badge variant="outline" className="rounded-full bg-white">{selectedRatio.use}</Badge>
+                  {detected && detected !== type ? <Badge className="rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100">检测到更像：{IMAGE_TYPES.find((item) => item.value === detected)?.label}</Badge> : null}
+                </div>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-5xl">一句需求，生成一组可投放素材</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">适合电商主图、营销海报、社媒封面、官网 Banner。后续可以接后台模板配置，把每个行业 prompt 变成可运营资产。</p>
+              </div>
+              <Button className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800" onClick={handleGenerate} disabled={loading || totalQuota < count}>
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <Rocket className="size-4" />}
+                生成 {count} 张
+              </Button>
+            </div>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {TEMPLATE_PACKS.map((item) => (
+                <button
+                  type="button"
+                  key={item.name}
+                  onClick={() => handleTemplate(item)}
+                  className={cn(
+                    "group overflow-hidden rounded-3xl border bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl",
+                    title === item.title ? "border-slate-950" : "border-slate-200",
+                  )}
+                >
+                  <div className={cn("h-24 bg-gradient-to-br p-4", item.accent)}>
+                    <div className="flex items-center justify-between">
+                      <Badge className="rounded-full bg-white/80 text-slate-700 hover:bg-white/80">{item.scene}</Badge>
+                      <ArrowUpRight className="size-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-slate-950" />
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold">{item.name}</h3>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">{item.detail}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-4 shadow-sm sm:p-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>素材主题</Label>
+                  <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="例如：夏季防晒新品上市海报" className="h-12 rounded-2xl bg-white" />
+                </div>
+                <div className="space-y-2">
+                  <Label>生成数量</Label>
+                  <div className="grid h-12 grid-cols-4 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+                    {[1, 2, 3, 4].map((item) => (
+                      <button key={item} type="button" onClick={() => setCount(item)} className={cn("rounded-xl text-sm transition", count === item ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:text-slate-950")}>{item} 张</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <Label>详细需求</Label>
+                <Textarea
+                  value={detail}
+                  onChange={(event) => setDetail(event.target.value)}
+                  placeholder="描述产品、目标人群、卖点、画面氛围、是否需要留出标题区域……"
+                  className="min-h-36 resize-none rounded-3xl bg-white p-4 leading-7"
+                />
+              </div>
+
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                <ControlBlock title="内容类型" icon={Wand2}>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {IMAGE_TYPES.map((item) => {
+                      const Icon = TYPE_ICONS[item.value]
+                      return (
+                        <button key={item.value} type="button" onClick={() => setType(item.value)} className={cn("rounded-2xl border p-3 text-left transition", type === item.value ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white hover:border-slate-300")}>
+                          <Icon className="size-4" />
+                          <p className="mt-2 text-sm font-semibold">{item.label}</p>
+                          <p className={cn("mt-1 text-xs", type === item.value ? "text-white/55" : "text-slate-500")}>{item.desc}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </ControlBlock>
+
+                <ControlBlock title="行业分类" icon={BadgeCheck}>
+                  <div className="flex flex-wrap gap-2">
+                    {INDUSTRIES.map((item) => (
+                      <button key={item.value} type="button" onClick={() => setIndustry(item.value)} className={cn("rounded-full border px-3 py-2 text-sm transition", industry === item.value ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300")}>{item.label}</button>
+                    ))}
+                  </div>
+                </ControlBlock>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">尺寸选择</p>
+                  <Maximize2 className="size-4 text-slate-400" />
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {RATIOS.map((item) => (
+                    <button key={item.value} type="button" onClick={() => setSize(item.value)} className={cn("rounded-2xl border bg-white p-3 text-left transition", size === item.value ? "border-slate-950 ring-2 ring-slate-950/10" : "border-slate-200 hover:border-slate-300")}>
+                      <div className={cn("mb-3 grid place-items-center rounded-xl bg-slate-100", item.value === "16:9" ? "h-12" : "h-16", RATIO_META[item.value].frame)}>
+                        <span className="text-xs font-semibold text-slate-400">{item.value}</span>
+                      </div>
+                      <p className="text-sm font-semibold">{RATIO_META[item.value].label}</p>
+                      <p className="mt-1 text-xs text-slate-500">{RATIO_META[item.value].use}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">品牌风格</p>
+                  <Palette className="size-4 text-slate-400" />
+                </div>
+                <div className="mt-4 space-y-2">
+                  {STYLE_PRESETS.map((item) => (
+                    <button key={item.name} type="button" onClick={() => setStylePreset(item)} className={cn("flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left transition", stylePreset.name === item.name ? "border-slate-950 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-300")}>
+                      <span className="size-9 rounded-xl border border-white shadow-sm" style={{ background: item.color }} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold">{item.name}</span>
+                        <span className="block text-xs text-slate-500">{item.caption}</span>
+                      </span>
+                      {stylePreset.name === item.name ? <Check className="size-4" /> : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white/85 p-4 shadow-sm sm:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">自定义提示词 / 反推风格</p>
+                  <p className="mt-1 text-xs text-slate-500">这里会和系统模板自动合并，适合放同款风格、镜头、材质、色彩。</p>
+                </div>
+                <Badge variant="outline" className="rounded-full bg-white">{customPrompt.length}/{CUSTOM_PROMPT_MAX}</Badge>
+              </div>
+              <Textarea
+                value={customPrompt}
+                onChange={(event) => setCustomPrompt(event.target.value.slice(0, CUSTOM_PROMPT_MAX))}
+                placeholder="例如：高端护肤品牌质感，柔和棚拍光，玻璃材质反射，奶油白背景，产品周围有水滴和植物元素。"
+                className="mt-4 min-h-28 resize-none rounded-3xl bg-white p-4 leading-7"
+              />
+            </div>
+
+            <div className="rounded-[1.75rem] border border-slate-200 bg-slate-950 p-4 text-white shadow-[0_20px_60px_rgba(15,23,42,0.18)]">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">生成提示词预览</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="rounded-full text-white/70 hover:bg-white/10 hover:text-white"
+                  onClick={() => {
+                    navigator.clipboard.writeText(finalPrompt)
+                    toast.success("已复制提示词")
+                  }}
+                >
+                  <Copy className="size-4" />
+                  复制
+                </Button>
+              </div>
+              <p className="mt-4 line-clamp-[8] text-sm leading-7 text-white/58">{finalPrompt}</p>
+            </div>
+          </section>
+
+          <section className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white/85 p-4 shadow-sm sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">生成结果</p>
+                <p className="mt-1 text-xs text-slate-500">结果会进入项目历史，后续可做二次编辑和批量导出。</p>
+              </div>
+              {loading ? <Badge className="rounded-full bg-lime-200 text-slate-950 hover:bg-lime-200"><Loader2 className="size-3 animate-spin" /> 正在生成</Badge> : null}
+            </div>
+            {currentJob ? (
+              <ResultCards job={currentJob} loading={loading} onReroll={handleReroll} />
+            ) : (
+              <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-slate-300 bg-slate-50/70 p-8 text-center">
+                <div>
+                  <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-white shadow-sm">
+                    <Sparkles className="size-6 text-slate-500" />
+                  </div>
+                  <p className="mt-4 font-semibold">还没有生成结果</p>
+                  <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">选择一个模板，补充产品或活动信息，然后生成第一组商业素材。</p>
+                </div>
+              </div>
+            )}
+          </section>
+        </main>
+
+        <aside className="border-t border-slate-200/80 bg-white/55 p-4 backdrop-blur-xl lg:border-l lg:border-t-0">
+          <div className="sticky top-24 space-y-4">
+            <div className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold">品牌一致性</p>
+                  <p className="mt-1 text-xs text-slate-500">未来接后台品牌资产</p>
+                </div>
+                <ShieldCheck className="size-5 text-emerald-500" />
+              </div>
+              <div className="mt-4 flex gap-2">
+                {['#111827', '#d9f99d', '#f97316', '#0ea5e9'].map((color) => (
+                  <span key={color} className="size-10 rounded-2xl border border-slate-200 shadow-sm" style={{ backgroundColor: color }} />
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {BRAND_TAGS.map((tag) => (
+                  <span key={tag} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600">{tag}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+              <p className="text-sm font-semibold">投放检查</p>
+              <div className="mt-4 space-y-3">
+                {[
+                  { label: "已选择业务场景", ok: Boolean(type) },
+                  { label: "已填写生成需求", ok: Boolean(title.trim() || detail.trim()) },
+                  { label: "已设置输出尺寸", ok: Boolean(size) },
+                  { label: "已设置品牌风格", ok: stylePreset.name !== "智能适配" || Boolean(customPrompt.trim()) },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-3 text-sm">
+                    <span className={cn("grid size-6 place-items-center rounded-full", item.ok ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400")}>{item.ok ? <Check className="size-3.5" /> : <AlertCircle className="size-3.5" />}</span>
+                    <span className={item.ok ? "text-slate-700" : "text-slate-400"}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-[#d9f99d] p-4 text-slate-950 shadow-sm">
+              <Ticket className="size-5" />
+              <p className="mt-3 font-semibold">下一步产品化建议</p>
+              <p className="mt-2 text-sm leading-6 text-slate-700">把模板、品牌色、禁用词和行业提示词迁到管理后台，前台只负责选择和生成。</p>
+            </div>
           </div>
-          {currentJob ? (
-            <Button variant="outline" size="sm" className="rounded-full" onClick={handleReroll} disabled={loading}>
-              {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              换一批
-            </Button>
-          ) : null}
-        </div>
-        {loading && (!currentJob || currentJob.status === "failed") ? (
-          <ResultSkeleton size={size} count={count} />
-        ) : currentJob ? (
-          currentJob.status === "failed" ? (
-            <FailedState onRetry={handleReroll} loading={loading} />
-          ) : (
-            <ResultCards job={currentJob} loading={loading} onReroll={handleReroll} />
-          )
-        ) : (
-          <EmptyState typeName={selectedType?.label || "营销图"} industryName={selectedIndustry?.label || "电商零售"} />
-        )}
-      </section>
+        </aside>
+      </div>
     </div>
   )
 }
 
-function EmptyState({ typeName, industryName }: { typeName: string; industryName: string }) {
+function Metric({ icon: Icon, label, value }: { icon: typeof Sparkles; label: string; value: string }) {
   return (
-    <Card className="min-h-[280px] border-dashed border-slate-200 bg-slate-50/70 p-8 text-center">
-      <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-white text-slate-500 shadow-sm">
-        <Sparkles className="size-7" />
-      </span>
-      <h3 className="mt-4 text-lg font-medium text-slate-900">等待生成第一批商业素材</h3>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-        当前选择：{industryName} / {typeName}。生成后可下载、换一批、复用提示词。
-      </p>
-    </Card>
-  )
-}
-
-function ResultSkeleton({ size, count }: { size: AspectRatio; count: number }) {
-  const box = RATIOS.find((item) => item.value === size)?.box ?? "aspect-square"
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {Array.from({ length: count }).map((_, index) => (
-        <div key={index} className={cn("rounded-2xl bg-slate-100 animate-pulse", box)} />
-      ))}
+    <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3">
+      <Icon className="size-4 text-lime-200" />
+      <p className="mt-2 text-xs text-white/45">{label}</p>
+      <p className="text-sm font-semibold">{value}</p>
     </div>
   )
 }
 
-function FailedState({ onRetry, loading }: { onRetry: () => void; loading: boolean }) {
+function ControlBlock({ title, icon: Icon, children }: { title: string; icon: typeof Sparkles; children: ReactNode }) {
   return (
-    <Card className="min-h-[280px] bg-white p-10 text-center">
-      <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
-        <AlertCircle className="size-7" />
-      </span>
-      <h3 className="mt-4 text-lg font-medium">生成失败</h3>
-      <p className="mt-1 text-sm text-muted-foreground">可能是模型超时或服务波动，本次未扣减额度。</p>
-      <Button className="mt-5 rounded-full" variant="outline" onClick={onRetry} disabled={loading}>
-        {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-        重试
-      </Button>
-    </Card>
+    <div className="rounded-3xl border border-slate-200 bg-slate-50/60 p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="grid size-8 place-items-center rounded-xl bg-white shadow-sm">
+          <Icon className="size-4 text-slate-600" />
+        </span>
+        <p className="text-sm font-semibold">{title}</p>
+      </div>
+      {children}
+    </div>
   )
 }
