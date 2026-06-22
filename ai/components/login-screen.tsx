@@ -44,7 +44,7 @@ const previewAssets = [
 ]
 
 export function LoginScreen() {
-  const { login, applyInviteCode } = useStore()
+  const { login, register, sendVerificationCode } = useStore()
   const [mode, setMode] = useState<AuthMode>("register")
   const [identityType, setIdentityType] = useState<IdentityType>("phone")
   const [phone, setPhone] = useState("")
@@ -71,8 +71,15 @@ export function LoginScreen() {
 
   const sendCode = () => {
     if (!validateIdentity()) return
-    setSent(true)
-    toast.success("验证码已发送（原型演示：输入任意 4 位即可）")
+    void (async () => {
+      const result = await sendVerificationCode(identity)
+      if (result.ok) {
+        setSent(true)
+        toast.success(result.message)
+      } else {
+        toast.error(result.message)
+      }
+    })()
   }
 
   const submitAuth = () => {
@@ -81,17 +88,20 @@ export function LoginScreen() {
       toast.error("请设置至少 6 位密码")
       return
     }
-    if (code.length < 4) {
+    if (mode === "login" && password && password.length < 6) {
+      toast.error("密码至少 6 位")
+      return
+    }
+    if ((mode === "register" || !password) && code.length < 4) {
       toast.error("请输入验证码")
       return
     }
 
     void (async () => {
-      if (mode === "register" && inviteCode.trim()) {
-        const invite = applyInviteCode(inviteCode)
-        if (invite.ok) toast.success(invite.message)
-      }
-      const result = await login(identity)
+      const result =
+        mode === "register"
+          ? await register({ identity, password, code, inviteCode })
+          : await login({ identity, password: password || undefined, code })
       if (result.ok) {
         toast.success(mode === "register" ? "注册成功，正在进入工作台" : result.message)
       } else {
@@ -249,15 +259,20 @@ export function LoginScreen() {
                 />
               </div>
 
-              {mode === "register" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="password">设置密码</Label>
-                  <div className="relative">
-                    <Input id="password" type="password" placeholder="至少 6 位密码" value={password} onChange={(event) => setPassword(event.target.value)} className="h-12 rounded-2xl bg-white pr-11" />
-                    <Eye className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{mode === "register" ? "设置密码" : "登录密码（可选）"}</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder={mode === "register" ? "至少 6 位密码" : "填写密码可直接登录，也可用验证码登录"}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="h-12 rounded-2xl bg-white pr-11"
+                  />
+                  <Eye className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                 </div>
-              ) : null}
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="code">验证码</Label>

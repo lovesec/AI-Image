@@ -1,26 +1,7 @@
 "use client"
 
-// 原型阶段：用户体系/配额/邀请码/历史记录均存于客户端 localStorage（不接数据库）
-
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import type { AspectRatio, Industry, ImageType } from "./templates"
-
-const FREE_QUOTA = 10
-
-export interface InviteCode {
-  code: string
-  type: "new" | "channel" | "event"
-  totalQuota: number
-  usedQuota: number
-  expiresAt: number
-}
-
-// 预置可用邀请码（原型演示）
-const SEED_INVITE_CODES: InviteCode[] = [
-  { code: "WELCOME20", type: "new", totalQuota: 20, usedQuota: 0, expiresAt: Date.now() + 30 * 864e5 },
-  { code: "CHANNEL50", type: "channel", totalQuota: 50, usedQuota: 0, expiresAt: Date.now() + 30 * 864e5 },
-  { code: "EXPIRED01", type: "event", totalQuota: 20, usedQuota: 0, expiresAt: Date.now() - 864e5 },
-]
 
 export interface GeneratedAsset {
   url: string
@@ -45,9 +26,22 @@ export interface Job {
 }
 
 export interface User {
+  id?: string
   account: string
   quota: number
   token?: string
+}
+
+interface AuthResult {
+  ok: boolean
+  message: string
+}
+
+interface AuthInput {
+  identity: string
+  password?: string
+  code?: string
+  inviteCode?: string
 }
 
 interface StoreState {
@@ -57,19 +51,19 @@ interface StoreState {
   appliedCode: string | null
   reversePromptDraft: string
   jobs: Job[]
-  login: (account: string) => Promise<{ ok: boolean; message: string }>
+  sendVerificationCode: (identity: string) => Promise<AuthResult & { debugCode?: string }>
+  register: (input: AuthInput) => Promise<AuthResult>
+  login: (input: string | AuthInput) => Promise<AuthResult>
   logout: () => void
   applyInviteCode: (code: string) => { ok: boolean; message: string }
   setReversePromptDraft: (text: string) => void
-  // 优先扣邀请码额度，不足扣账户配额
   consumeQuota: (n: number) => boolean
   addJob: (job: Job) => void
   removeJob: (id: string) => void
 }
 
 const StoreContext = createContext<StoreState | null>(null)
-
-const KEY = "ai-img-store-v1"
+const KEY = "ai-img-store-v2"
 
 interface Persisted {
   token?: string | null
@@ -78,6 +72,19 @@ interface Persisted {
   appliedCode: string | null
   reversePromptDraft?: string
   jobs: Job[]
+}
+
+function toUser(data: { id?: string; emailOrPhone?: string; quotaLeft?: number; token?: string }): User {
+  return {
+    id: data.id,
+    account: data.emailOrPhone || "",
+    quota: Number(data.quotaLeft ?? 0),
+    token: data.token,
+  }
+}
+
+async function readJson(res: Response) {
+  return res.json().catch(() => ({})) as Promise<Record<string, unknown>>
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -95,14 +102,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (raw) {
         const p: Persisted = JSON.parse(raw)
         setUser(p.user)
-        setToken(p.token || null)
+        setToken(p.token || p.user?.token || null)
         setInviteQuota(p.inviteQuota ?? 0)
         setAppliedCode(p.appliedCode ?? null)
         setReversePromptDraft(p.reversePromptDraft || "")
         setJobs(p.jobs ?? [])
       }
     } catch {
-      // ignore
+      // ignore invalid persisted state
     }
     setHydrated(true)
   }, [])
@@ -113,30 +120,76 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(KEY, JSON.stringify(p))
   }, [user, token, inviteQuota, appliedCode, reversePromptDraft, jobs, hydrated])
 
-  const login = async (account: string) => {
-    const normalized = account.trim()
-    if (!normalized) {
-      return { ok: false, message: "请输入有效账号" }
-    }
-    setUser({ account: normalized, quota: FREE_QUOTA })
-    setToken(null)
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identity: normalized }),
+  useEffect(() => {
+    if (!hydrated || !token) return
+    void (async () => {
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      const data = await res.json().catch(() => null)
-      if (res.ok && data?.ok && data.user) {
-        setUser({ account: data.user.emailOrPhone || normalized, quota: Number(data.user.quotaLeft ?? FREE_QUOTA), token: data.token })
-        setToken(data.token || null)
-        return { ok: true, message: "登录成功" }
+      const data = await readJson(res)
+      if (!res.ok || !data.ok || !data.user) {
+        setUser(null)
+        setToken(null)
+        return
       }
-      return { ok: true, message: "登录成功（演示模式）" }
-    } catch {
-      return { ok: true, message: "登录成功（演示模式）" }
+      const nextUser = toUser(data.user as { id?: string; emailOrPhone?: string; quotaLeft?: number })
+      setUser({ ...nextUser, token })
+    })()
+  }, [hydrated, token])
+
+  const setSession = (payload: Record<string, unknown>) => {
+    const nextToken = String(payload.token || "")
+    const nextUser = toUser(payload.user as { id?: string; emailOrPhone?: string; quotaLeft?: number; token?: string })
+    setToken(nextToken)
+    setUser({ ...nextUser, token: nextToken })
+  }
+
+  const sendVerificationCode = async (identity: string) => {
+    const res = await fetch("/api/auth/send-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identity }),
+    })
+    const data = await readJson(res)
+    if (!res.ok || !data.ok) {
+      return { ok: false, message: String(data.error || "验证码发送失败") }
     }
+    return {
+      ok: true,
+      message: data.debugCode ? `验证码已发送，开发验证码：${data.debugCode}` : "验证码已发送",
+      debugCode: data.debugCode ? String(data.debugCode) : undefined,
+    }
+  }
+
+  const register = async (input: AuthInput) => {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    })
+    const data = await readJson(res)
+    if (!res.ok || !data.ok) {
+      return { ok: false, message: String(data.error || "注册失败") }
+    }
+    setSession(data)
+    setInviteQuota(0)
+    setAppliedCode(input.inviteCode?.trim().toUpperCase() || null)
+    return { ok: true, message: "注册成功" }
+  }
+
+  const login = async (input: string | AuthInput) => {
+    const payload = typeof input === "string" ? { identity: input } : input
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    const data = await readJson(res)
+    if (!res.ok || !data.ok) {
+      return { ok: false, message: String(data.error || "登录失败") }
+    }
+    setSession(data)
+    return { ok: true, message: "登录成功" }
   }
 
   const logout = () => {
@@ -148,14 +201,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const normalized = code.trim().toUpperCase()
     if (!normalized) return { ok: false, message: "请输入邀请码" }
     if (appliedCode === normalized) return { ok: false, message: "该邀请码已激活" }
-    const found = SEED_INVITE_CODES.find((c) => c.code === normalized)
-    if (!found) return { ok: false, message: "邀请码无效" }
-    if (found.expiresAt < Date.now()) return { ok: false, message: "邀请码已过期" }
-    const remaining = found.totalQuota - found.usedQuota
-    if (remaining <= 0) return { ok: false, message: "邀请码额度已用尽" }
-    setInviteQuota((q) => q + remaining)
     setAppliedCode(normalized)
-    return { ok: true, message: `激活成功，获得 ${remaining} 次生成额度` }
+    setInviteQuota((q) => q + 20)
+    return { ok: true, message: "邀请码已记录，生产版会由服务端校验额度" }
   }
 
   const consumeQuota = (n: number) => {
@@ -184,6 +232,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         appliedCode,
         reversePromptDraft,
         jobs,
+        sendVerificationCode,
+        register,
         login,
         logout,
         applyInviteCode,
@@ -192,7 +242,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         addJob,
         removeJob,
       }}
-      >
+    >
       {children}
     </StoreContext.Provider>
   )

@@ -1,7 +1,9 @@
 import { experimental_generateImage as generateImage } from "ai"
 import { RATIO_TO_IMAGEN, type AspectRatio } from "@/lib/templates"
 import { makePlaceholder } from "@/lib/placeholder"
+import { getUserFromRequest } from "@/lib/server/auth"
 
+export const runtime = "nodejs"
 export const maxDuration = 60
 
 interface GenerateBody {
@@ -14,6 +16,13 @@ interface GenerateBody {
 }
 
 export async function POST(req: Request) {
+  if (process.env.REQUIRE_AUTH_FOR_GENERATION !== "false") {
+    const user = await getUserFromRequest(req)
+    if (!user) {
+      return Response.json({ error: "请先登录后再生成图片", code: "unauthorized" }, { status: 401 })
+    }
+  }
+
   let body: GenerateBody
   try {
     body = (await req.json()) as GenerateBody
