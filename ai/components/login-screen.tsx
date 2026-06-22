@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
@@ -49,6 +50,15 @@ const caseCards = [
   { type: "品牌", title: "官网 Hero Banner", meta: "16:9 / 左文案右视觉", prompt: "SaaS 产品官网首屏，深色设备界面，右侧产品视觉，高级科技感", tone: "from-slate-100 via-white to-cyan-100" },
   { type: "品牌", title: "同款风格复刻", meta: "参考图 / 反推 prompt / 再生成", prompt: "上传参考图后提取配色、构图、材质和镜头语言，生成同风格素材", tone: "from-violet-100 via-white to-lime-100" },
 ]
+
+const creatorScenes = [
+  { name: "电商主图", ratio: "4:5", hint: "产品居中、卖点留白、适合信息流投放", tone: "from-orange-100 via-white to-lime-100" },
+  { name: "活动海报", ratio: "9:16", hint: "强标题、福利区、扫码区、行动按钮", tone: "from-rose-100 via-white to-orange-100" },
+  { name: "社媒封面", ratio: "1:1", hint: "大标题、强对比、手机端浏览友好", tone: "from-pink-100 via-white to-sky-100" },
+  { name: "品牌 Banner", ratio: "16:9", hint: "左文案右视觉、官网和广告位可用", tone: "from-slate-100 via-white to-cyan-100" },
+]
+
+const creatorStyles = ["智能适配", "高级黑金", "清透蓝白", "暖橙转化", "自然绿调"]
 
 export function LoginScreen() {
   const { login, register, sendVerificationCode } = useStore()
@@ -201,59 +211,169 @@ export function LoginScreen() {
 }
 
 function HomeTab({ onShowCases, onAuth }: { onShowCases: () => void; onAuth: () => void }) {
+  const [scene, setScene] = useState(creatorScenes[0])
+  const [style, setStyle] = useState(creatorStyles[0])
+  const [prompt, setPrompt] = useState("夏季防晒新品上市，突出清爽、防水、户外通勤场景，画面高级干净。")
+
   return (
-    <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(520px,1fr)] lg:py-16">
+    <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[minmax(0,0.78fr)_minmax(620px,1fr)] lg:py-16">
       <div>
         <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/74 px-3 py-2 text-sm text-slate-600 shadow-sm">
           <BadgeCheck className="size-4 text-lime-600" />
-          先看案例，再注册生成真实图片
+          先体验交互，再注册生成真实图片
         </div>
         <h1 className="mt-6 max-w-4xl text-5xl font-semibold leading-[1.02] tracking-tight text-slate-950 sm:text-7xl">
-          面向商业投放的 AI 图片生产台
+          像真正工作台一样生成商业图片
         </h1>
         <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-          首页只讲清楚产品能解决什么问题；案例单独展示。用户看到想要的效果后，再点击生成同款、保存项目或导出高清图完成注册。
+          首页直接给用户看到成熟的生成流程：选择场景、填写需求、控制尺寸和风格、预览系统 prompt。只有点击正式生成、保存项目或导出高清时才需要登录。
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Button className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800" onClick={onShowCases}>
-            查看案例
+          <Button className="h-12 rounded-full bg-slate-950 px-6 text-white hover:bg-slate-800" onClick={onAuth}>
+            登录后生成
             <ArrowRight className="size-4" />
           </Button>
-          <Button variant="outline" className="h-12 rounded-full bg-white/70 px-6" onClick={onAuth}>免费开始</Button>
+          <Button variant="outline" className="h-12 rounded-full bg-white/70 px-6" onClick={onShowCases}>查看案例</Button>
         </div>
       </div>
 
-      <div className="rounded-[2rem] border border-white/80 bg-white/78 p-5 shadow-[0_34px_120px_rgba(15,23,42,0.13)] backdrop-blur-xl sm:p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-slate-500">Product Workflow</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight">从模板到资产归档</h2>
-          </div>
-          <span className="grid size-12 place-items-center rounded-2xl bg-[#d9f99d] text-slate-950 shadow-sm">
-            <Zap className="size-5" />
-          </span>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {productPillars.map((item) => (
-            <div key={item.title} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-              <span className="grid size-10 place-items-center rounded-2xl bg-slate-950 text-white">
-                <item.icon className="size-5" />
-              </span>
-              <p className="mt-4 font-semibold">{item.title}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">{item.desc}</p>
+      <div className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/78 shadow-[0_34px_120px_rgba(15,23,42,0.13)] backdrop-blur-xl">
+        <div className="border-b border-slate-200/80 bg-white/70 px-5 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Public Creator</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">公开版生成工作台</h2>
             </div>
-          ))}
-        </div>
-
-        <div className="mt-5 rounded-3xl bg-slate-950 p-4 text-white">
-          <p className="text-sm font-semibold">适合的商业场景</p>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {["电商产品图", "活动海报", "社媒封面", "品牌 Banner"].map((item) => (
-              <div key={item} className="rounded-2xl bg-white/[0.07] px-3 py-3 text-sm text-white/72 ring-1 ring-white/10">{item}</div>
-            ))}
+            <div className="rounded-full bg-lime-200 px-3 py-1.5 text-xs font-medium text-slate-950">登录后生成高清图</div>
           </div>
         </div>
+
+        <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="space-y-5 p-5 sm:p-6">
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <Label>选择生成场景</Label>
+                <button type="button" onClick={onShowCases} className="text-xs font-medium text-slate-500 hover:text-slate-950">
+                  看更多案例
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {creatorScenes.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => setScene(item)}
+                    className={cn(
+                      "rounded-3xl border bg-white p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md",
+                      scene.name === item.name ? "border-slate-950 ring-2 ring-slate-950/10" : "border-slate-200",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={cn("grid size-12 place-items-center rounded-2xl bg-gradient-to-br", item.tone)}>
+                        <ImageIcon className="size-5 text-slate-500" />
+                      </span>
+                      <span>
+                        <span className="block text-sm font-semibold">{item.name}</span>
+                        <span className="mt-1 block text-xs text-slate-500">{item.ratio} · {item.hint}</span>
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>你的需求</Label>
+              <Textarea
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="描述产品、活动、目标人群、画面风格……"
+                className="min-h-28 resize-none rounded-3xl bg-white p-4 leading-7"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_210px]">
+              <div className="space-y-2">
+                <Label>品牌风格</Label>
+                <div className="flex flex-wrap gap-2">
+                  {creatorStyles.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => setStyle(item)}
+                      className={cn(
+                        "rounded-full border px-3 py-2 text-sm transition",
+                        style === item ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
+                      )}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">输出规格</p>
+                <p className="mt-2 text-2xl font-semibold">{scene.ratio}</p>
+                <p className="mt-1 text-xs text-slate-500">{scene.name} 推荐尺寸</p>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">系统提示词预览</p>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
+                {scene.name}，{scene.hint}，{style}风格，用户需求：{prompt || "等待输入"}。自动加入品牌一致性、安全反向提示词和投放尺寸控制。
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button className="h-12 flex-1 rounded-2xl bg-slate-950 text-white hover:bg-slate-800" onClick={onAuth}>
+                生成真实图片
+                <ArrowRight className="size-4" />
+              </Button>
+              <Button variant="outline" className="h-12 rounded-2xl bg-white" onClick={onAuth}>保存项目</Button>
+            </div>
+          </div>
+
+          <aside className="border-t border-slate-200 bg-slate-950 p-5 text-white xl:border-l xl:border-t-0 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">输出预览</p>
+                <p className="mt-1 text-xs text-white/45">公开预览，不消耗额度</p>
+              </div>
+              <Zap className="size-5 text-lime-200" />
+            </div>
+
+            <div className={cn("mt-5 grid aspect-[4/5] place-items-center rounded-[1.75rem] bg-gradient-to-br p-5 text-slate-950", scene.tone)}>
+              <div className="rounded-3xl bg-white/78 p-5 text-center shadow-sm backdrop-blur">
+                <FileImage className="mx-auto size-10 text-slate-500" />
+                <p className="mt-4 font-semibold">{scene.name}</p>
+                <p className="mt-1 text-xs text-slate-500">{scene.ratio} · {style}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-2">
+              {["生成高清图", "批量出 4 张", "导出 PNG", "保存历史"].map((item) => (
+                <div key={item} className="flex items-center justify-between rounded-2xl bg-white/[0.07] px-3 py-3 text-sm text-white/70 ring-1 ring-white/10">
+                  <span>{item}</span>
+                  <LockKeyhole className="size-3.5 text-white/38" />
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div className="lg:col-span-2 grid gap-3 md:grid-cols-3">
+        {productPillars.map((item) => (
+          <div key={item.title} className="rounded-3xl border border-slate-200 bg-white/78 p-4 shadow-sm">
+            <span className="grid size-10 place-items-center rounded-2xl bg-slate-950 text-white">
+              <item.icon className="size-5" />
+            </span>
+            <p className="mt-4 font-semibold">{item.title}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">{item.desc}</p>
+          </div>
+        ))}
       </div>
     </section>
   )
