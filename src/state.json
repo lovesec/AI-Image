@@ -1,0 +1,192 @@
+{
+  "users": [
+    {
+      "id": "user_1c8406280ca24f0db13bc713fee5de20",
+      "emailOrPhone": "tester@example.com",
+      "planId": "free",
+      "quotaLeft": 4,
+      "inviterCodeId": null,
+      "allowedTypes": [],
+      "createdAt": "2026-06-15T11:38:00.928Z"
+    },
+    {
+      "id": "user_369b1f59f0a34a7789265b54553c3b8c",
+      "emailOrPhone": "deploy_tester@example.com",
+      "planId": "free",
+      "quotaLeft": 5,
+      "inviterCodeId": null,
+      "allowedTypes": [],
+      "createdAt": "2026-06-15T11:41:33.584Z"
+    },
+    {
+      "id": "user_a7199016ba3b44a18650b9e8f8448110",
+      "emailOrPhone": "rookie@toobit.com",
+      "planId": "free",
+      "quotaLeft": 5,
+      "inviterCodeId": null,
+      "allowedTypes": [],
+      "createdAt": "2026-06-15T16:01:00.205Z"
+    }
+  ],
+  "inviteCodes": [
+    {
+      "id": "icode_318d13208b9245ceb649be307592c1d1",
+      "code": "DEMO2026",
+      "codeType": "activity",
+      "quotaTotal": 20,
+      "quotaUsed": 0,
+      "quotaGrant": 20,
+      "maxUsesPerUser": 1,
+      "expiresAt": "",
+      "allowedTypes": [],
+      "planOverride": "",
+      "status": "active",
+      "createdAt": "2026-06-15T11:37:40.194Z",
+      "usedBy": []
+    }
+  ],
+  "templates": [
+    {
+      "id": "tpl_poster_default",
+      "type": "poster",
+      "industry": "*",
+      "basePrompt": "professional marketing poster, premium composition, bold focal point, balanced spacing for title and CTA, high contrast, no watermark",
+      "negativePrompt": "low quality, blurry, warped text, watermark, logo clutter, bad typography, cut-off subjects",
+      "allowedSizes": [
+        "1:1",
+        "4:5",
+        "16:9"
+      ],
+      "industryPrompt": "clean commercial marketing style"
+    },
+    {
+      "id": "tpl_product_shot_default",
+      "type": "product_shot",
+      "industry": "*",
+      "basePrompt": "clean e-commerce product shot, centered product, natural lighting, neutral background, crisp edges, realistic product materials",
+      "negativePrompt": "multiple products, cluttered background, busy props, tiny product, distorted shape, watermark",
+      "allowedSizes": [
+        "1:1",
+        "4:5"
+      ],
+      "industryPrompt": "product-first composition with realistic texture"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "job_822a438e28744b40bf409a6bcdd8bc4e",
+      "userId": "user_1c8406280ca24f0db13bc713fee5de20",
+      "type": "poster",
+      "industry": "food",
+      "ratio": "1:1",
+      "inputPayload": {
+        "title": "test",
+        "subtitle": "hello",
+        "cta": "buy now",
+        "colorStyle": "",
+        "brandTone": "",
+        "customPrompt": "",
+        "count": 1
+      },
+      "finalPrompt": "professional marketing poster, premium composition, bold focal point, balanced spacing for title and CTA, high contrast, no watermark Industry context: clean commercial marketing style. Content type is poster. Industry is food. Canvas ratio is 1:1. If text is shown, leave enough blank space for Chinese/English title and CTA. Main title: test. Subheadline: hello. Call to action: buy now. Avoid: low quality, blurry, warped text, watermark, logo clutter, bad typography, cut-off subjects. No watermark, no random text, no logos unless user explicitly provides brand token.",
+      "status": "done",
+      "source": "quota",
+      "model": "gpt-image-2",
+      "createdAt": "2026-06-15T11:38:21.213Z",
+      "updatedAt": "2026-06-15T11:38:22.123Z",
+      "assets": [
+        "asset_f670239d2b7149c9b8540515c0aff9f0"
+      ],
+      "startedAt": "2026-06-15T11:38:21.213Z",
+      "finishedAt": "2026-06-15T11:38:22.123Z"
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset_f670239d2b7149c9b8540515c0aff9f0",
+      "jobId": "job_822a438e28744b40bf409a6bcdd8bc4e",
+      "url": "/assets/job_822a438e28744b40bf409a6bcdd8bc4e_1.svg",
+      "width": 1024,
+      "height": 1024,
+      "format": "svg",
+      "fileSize": 892,
+      "createdAt": "2026-06-15T11:38:22.123Z"
+    }
+  ],
+  "customOverrides": [],
+  "promptLibrary": [
+    {
+      "id": "prompt_52676fa3c86048ff9857a5f667d2808a",
+      "name": "为电商产品拍摄白底主图，突出质感",
+      "prompt": "为电商产品拍摄白底主图，突出质感",
+      "createdAt": "2026-06-15T11:38:04.908Z",
+      "predicted": {
+        "type": "product_shot",
+        "typeConfidence": 1,
+        "industry": "ecommerce",
+        "industryConfidence": 1,
+        "typeMethod": "keyword",
+        "industryMethod": "keyword"
+      },
+      "tags": [
+        "product_shot",
+        "ecommerce"
+      ],
+      "custom": {
+        "preferredType": "",
+        "preferredIndustry": "",
+        "rawInputIndex": null
+      },
+      "owner": "user_1c8406280ca24f0db13bc713fee5de20"
+    },
+    {
+      "id": "prompt_86850a7795624083a3e25456f5833106",
+      "name": "餐饮新品海报，奶茶店开业活动",
+      "prompt": "餐饮新品海报，奶茶店开业活动",
+      "createdAt": "2026-06-15T11:38:04.908Z",
+      "predicted": {
+        "type": "poster",
+        "typeConfidence": 0,
+        "industry": "food",
+        "industryConfidence": 1,
+        "typeMethod": "keyword",
+        "industryMethod": "keyword"
+      },
+      "tags": [
+        "food"
+      ],
+      "custom": {
+        "preferredType": "",
+        "preferredIndustry": "",
+        "rawInputIndex": 1
+      },
+      "owner": "user_1c8406280ca24f0db13bc713fee5de20"
+    },
+    {
+      "id": "prompt_879d73511ac84c839001a4255d8e1eb8",
+      "name": "课程海报，AI课程宣传",
+      "prompt": "课程海报，AI课程宣传",
+      "createdAt": "2026-06-15T11:38:04.908Z",
+      "predicted": {
+        "type": "poster",
+        "typeConfidence": 0,
+        "industry": "education",
+        "industryConfidence": 0.333,
+        "typeMethod": "keyword",
+        "industryMethod": "keyword"
+      },
+      "tags": [
+        "education",
+        "fitness",
+        "tech"
+      ],
+      "custom": {
+        "preferredType": "",
+        "preferredIndustry": "",
+        "rawInputIndex": 2
+      },
+      "owner": "user_1c8406280ca24f0db13bc713fee5de20"
+    }
+  ],
+  "logs": []
+}

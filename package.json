@@ -1,0 +1,11 @@
+{
+  "name": "ai-image-generator-platform",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "MVP backend + web for AI image generation platform (Web + Android API ready)",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  }
+}

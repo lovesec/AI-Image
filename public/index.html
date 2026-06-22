@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智图 · AI 营销图生成</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="aurora aurora-a"></div>
+      <div class="aurora aurora-b"></div>
+
+      <main class="page-frame">
+        <!-- 登录页 -->
+        <section id="authSection" class="auth-shell">
+          <section class="auth-brand">
+            <div class="brand-mark" aria-hidden="true">智</div>
+            <p class="brand-kicker">AI 图片生产工作台</p>
+            <h1>智图 · AI 营销图生成</h1>
+            <p class="brand-subtitle">
+              选行业、填文案、自动拼接提示词，支持宣传海报、商品图、社媒图等多种场景，一次生成可直接投放。
+            </p>
+
+            <ul class="feature-list">
+              <li>
+                <span class="feature-dot feature-dot--primary"></span>
+                模板化提示词：行业与类型自动适配
+              </li>
+              <li>
+                <span class="feature-dot feature-dot--success"></span>
+                一次最多 4 张图，支持多比例输出
+              </li>
+              <li>
+                <span class="feature-dot feature-dot--accent"></span>
+                邀请码增量额度+历史任务一键复用
+              </li>
+            </ul>
+          </section>
+
+          <section class="auth-card">
+            <div class="auth-card-top">
+              <div class="brand-chip">WELCOME</div>
+              <h2>登录 / 注册</h2>
+              <p>未注册账号将自动创建并赠送试用额度</p>
+            </div>
+
+            <div class="auth-entry">
+              <label for="identityInput">手机号 / 邮箱</label>
+              <input id="identityInput" placeholder="请输入手机号或邮箱" />
+              <button id="loginBtn" class="btn btn-primary">获取验证码并登录</button>
+              <p class="muted helper-text">
+                支持 1 秒内创建体验账号，登录后可立即发起试用任务。
+              </p>
+            </div>
+
+            <div class="quick-tip">
+              <div>示例邀请码：<strong>DEMO2026</strong></div>
+              <div>默认演示版仅为本地体验，额度可通过后台配置</div>
+            </div>
+          </section>
+        </section>
+
+        <!-- 工作台 -->
+        <section id="generatorSection" class="workspace-shell hidden">
+          <header class="workspace-header">
+            <div class="brand-inline">
+              <div class="brand-mark-small" aria-hidden="true">智</div>
+              <div>
+                <p class="eyebrow">AI 营销图生产平台</p>
+                <h1>智图 工作台</h1>
+              </div>
+            </div>
+
+            <div class="header-meta">
+              <span id="userBadge" class="meta-pill">未登录</span>
+              <span id="quotaInfo" class="meta-pill">剩余额度：加载中</span>
+              <span id="statusText" class="meta-pill status-pill">系统就绪</span>
+              <button id="logoutBtn" class="btn btn-ghost">退出</button>
+            </div>
+          </header>
+
+          <div class="mode-tabs" role="tablist" aria-label="工作模式">
+            <button id="tabGenerateBtn" class="mode-tab is-active" type="button">生成图片</button>
+            <button id="tabHistoryBtn" class="mode-tab" type="button">历史记录</button>
+          </div>
+
+          <div id="generateView" class="workspace-view">
+            <div class="studio-grid">
+              <section class="panel">
+                <div class="panel-head">
+                  <h2>1. 选择图片类型与行业</h2>
+                  <p class="muted">先选模板方向，再自动匹配行业提示词</p>
+                </div>
+
+                <div class="grid grid-2">
+                  <label class="full-width">
+                    图片类型
+                    <select id="typeSelect">
+                      <option value="poster">宣传海报</option>
+                      <option value="product_shot">电商产品图</option>
+                      <option value="social_post">社媒图</option>
+                      <option value="banner">横幅图</option>
+                      <option value="cover">活动封面</option>
+                    </select>
+                  </label>
+                  <label class="full-width">
+                    行业
+                    <select id="industrySelect">
+                      <option value="ecommerce">电商</option>
+                      <option value="education">教育</option>
+                      <option value="food">餐饮</option>
+                      <option value="fitness">健身</option>
+                      <option value="travel">旅行</option>
+                      <option value="finance">金融</option>
+                      <option value="beauty">美妆</option>
+                      <option value="tech">科技</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="grid grid-2 mt-4">
+                  <label>
+                    画幅比例
+                    <select id="ratioSelect">
+                      <option>1:1</option>
+                      <option>4:5</option>
+                      <option>16:9</option>
+                      <option>9:16</option>
+                    </select>
+                  </label>
+                  <label>
+                    生成张数
+                    <select id="countSelect">
+                      <option>1</option>
+                      <option selected>3</option>
+                      <option>4</option>
+                    </select>
+                  </label>
+                </div>
+
+                <p id="templateHint" class="muted helper-text">推荐比例：待选择模板后自动更新</p>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <h2>2. 填写需求文案</h2>
+                  <p class="muted">尽量具体，系统会自动补齐拍摄/构图/文字要求</p>
+                </div>
+
+                <label>
+                  主标题
+                  <input id="titleInput" placeholder="例如：夏季限时促销" />
+                </label>
+                <label>
+                  副标题
+                  <input id="subtitleInput" placeholder="例如：买二送一 8折起" />
+                </label>
+                <label>
+                  CTA 按钮文案
+                  <input id="ctaInput" placeholder="例如：立即抢购" />
+                </label>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <h2>3. 风格与品牌约束</h2>
+                </div>
+
+                <label>
+                  风格 / 色彩
+                  <input id="styleInput" placeholder="例如：高对比、偏红暖色、极简" />
+                </label>
+                <label>
+                  品牌语气
+                  <input id="brandInput" placeholder="例如：专业、信赖、年轻感" />
+                </label>
+                <label>
+                  自定义提示词（追加）
+                  <textarea id="customPromptInput" rows="3" placeholder="例如：增加更多电影棚打光，高光更强"></textarea>
+                </label>
+                <label class="inline-control">
+                  邀请码
+                  <div class="inline-input-with-btn">
+                    <input id="inviteInput" placeholder="可选，输入后可增加额度" />
+                    <button id="activateInviteBtn" class="btn btn-secondary">激活</button>
+                  </div>
+                </label>
+              </section>
+
+              <section class="panel">
+                <div class="panel-head">
+                  <h2>4. 反推风格（同款参考）</h2>
+                  <p class="muted">上传一张参考图，自动提取同风格提示词</p>
+                </div>
+
+                <label>
+                  参考图片
+                  <input id="referenceImageInput" type="file" accept="image/*" />
+                </label>
+                <div id="referenceImagePreview" class="reference-preview hidden">
+                  <img id="referenceImageThumb" alt="参考图预览" />
+                </div>
+                <div class="row">
+                  <button id="reversePromptBtn" class="btn btn-outline">反推提示词</button>
+                </div>
+
+                <div id="reversePromptWrap" class="prompt-preview hidden">
+                  <div class="preview-head">反推提示词（可直接追加）</div>
+                  <pre id="reversePromptResult"></pre>
+                  <div class="row controls-inline">
+                    <button id="applyReversePromptBtn" class="btn btn-ghost">应用到自定义提示词</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel prompt-card">
+                <div class="panel-head">
+                  <h2>5. 开始生成</h2>
+                </div>
+
+                <div class="row controls-inline">
+                  <button id="previewBtn" class="btn btn-ghost">预览 Prompt</button>
+                  <button id="clearFormBtn" class="btn btn-ghost">清空文本</button>
+                  <button id="generateBtn" class="btn btn-primary">立即生成</button>
+                </div>
+
+                <div id="promptPreviewWrap" class="prompt-preview hidden">
+                  <div class="preview-head">当前拼接 Prompt</div>
+                  <pre id="promptPreview"></pre>
+                  <p class="muted">提示词用于真实出图，可按需编辑。</p>
+                </div>
+
+                <p id="genError" class="error"></p>
+
+                <div id="jobPanel" class="job-panel hidden">
+                  <div class="job-head">
+                    <p id="jobStatus"></p>
+                    <p id="jobLoading" class="muted hidden">任务执行中，请耐心等待</p>
+                  </div>
+                  <div class="row">
+                    <button id="refreshJobBtn" class="btn btn-ghost">刷新状态</button>
+                    <button id="rerenderCurrentBtn" class="btn btn-outline hidden">当前参数重画</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel result-panel">
+                <div class="panel-head">
+                  <h2>生成结果</h2>
+                  <p class="muted">支持点击原图预览与下载</p>
+                </div>
+
+                <div id="resultList" class="result-list"></div>
+                <div id="resultSkeleton" class="result-skeleton hidden" aria-hidden="true">
+                  <div class="skeleton-item">
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                  </div>
+                  <div class="skeleton-item">
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                  </div>
+                  <div class="skeleton-item">
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                  </div>
+                  <div class="skeleton-item">
+                    <div class="skeleton-thumb"></div>
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div id="historyView" class="workspace-view hidden">
+            <div class="history-grid">
+              <section id="historySection" class="panel">
+                <div class="panel-head">
+                  <h2>历史记录</h2>
+                  <p class="muted">最近任务回看与同参数重画</p>
+                </div>
+                <div id="historyList" class="history"></div>
+              </section>
+
+              <section id="importSection" class="panel">
+                <div class="panel-head">
+                  <h2>提示词导入与分类</h2>
+                  <p class="muted">粘贴/上传后先预览，再一键导入</p>
+                </div>
+
+                <label>
+                  上传提示词文件（可选）
+                  <input id="promptImportFile" type="file" accept=".md,.txt,.json,.csv" />
+                </label>
+                <label>
+                  待导入提示词
+                  <textarea id="promptImportInput" rows="8" placeholder='每行一条提示词；或粘贴 JSON 数组，例如 [{"name":"xxx","prompt":"..."}]'></textarea>
+                </label>
+
+                <div class="row">
+                  <button id="promptImportPreviewBtn" class="btn btn-ghost">预览分类</button>
+                  <button id="promptImportCommitBtn" class="btn btn-primary">确认导入</button>
+                  <button id="promptImportClearBtn" class="btn btn-outline">清空内容</button>
+                </div>
+
+                <div id="promptImportStatus" class="muted helper-text"></div>
+                <div id="promptImportSummary" class="prompt-summary"></div>
+                <div id="promptImportList" class="prompt-list"></div>
+              </section>
+
+              <section id="librarySection" class="panel">
+                <div class="panel-head">
+                  <h2>我的提示词库</h2>
+                  <p class="muted">按类型与行业快速筛选</p>
+                </div>
+
+                <div class="row filter-row">
+                  <select id="libraryTypeFilter">
+                    <option value="">全部类型</option>
+                    <option value="poster">宣传海报</option>
+                    <option value="product_shot">电商产品图</option>
+                    <option value="social_post">社媒图</option>
+                    <option value="banner">横幅图</option>
+                    <option value="cover">活动封面</option>
+                  </select>
+                  <select id="libraryIndustryFilter">
+                    <option value="">全部行业</option>
+                    <option value="ecommerce">电商</option>
+                    <option value="education">教育</option>
+                    <option value="food">餐饮</option>
+                    <option value="fitness">健身</option>
+                    <option value="travel">旅行</option>
+                    <option value="finance">金融</option>
+                    <option value="beauty">美妆</option>
+                    <option value="tech">科技</option>
+                  </select>
+                  <button id="refreshLibraryBtn" class="btn btn-secondary">刷新提示词库</button>
+                </div>
+
+                <div id="promptLibraryList" class="prompt-list"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>
